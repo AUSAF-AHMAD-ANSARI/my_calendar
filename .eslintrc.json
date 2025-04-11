@@ -1,0 +1,25 @@
+{
+    "extends": [
+      "airbnb",
+      "airbnb/hooks",
+      "plugin:prettier/recommended"
+    ],
+    "rules": {
+      "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
+      "react/prop-types": "off",
+      "no-unused-vars": "warn",
+      "import/prefer-default-export": "off",
+      "react/jsx-props-no-spreading": "off",
+      "react/function-component-definition": [
+        "error",
+        {
+          "namedComponents": "arrow-function",
+          "unnamedComponents": "arrow-function"
+        }
+      ]
+    },
+    "env": {
+      "browser": true,
+      "node": true
+    }
+  }

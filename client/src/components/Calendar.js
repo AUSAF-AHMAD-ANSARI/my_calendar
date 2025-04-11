@@ -14,7 +14,7 @@ const DnDCalendar = withDragAndDrop(BigCalendar);
 
 const Calendar = () => {
   const dispatch = useDispatch();
-  const { events, status, error } = useSelector((state) => state.events);
+  const { events, status } = useSelector((state) => state.events);
   
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -22,25 +22,16 @@ const Calendar = () => {
   const [draggedTask, setDraggedTask] = useState(null);
   const [goalColor, setGoalColor] = useState(null);
   const [currentView, setCurrentView] = useState('week');
-  
-  // Current date state
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showingNav, setShowingNav] = useState('today');
-  
-  // Calculate calendar height based on window size
-  const [calendarHeight, setCalendarHeight] = useState(window.innerHeight - 120); // subtract header height
-  
+  const [calendarHeight, setCalendarHeight] = useState(window.innerHeight - 120);
+
   useEffect(() => {
-    // Set up resize listener to adjust calendar height
     const handleResize = () => {
       setCalendarHeight(window.innerHeight - 120);
     };
     
     window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -73,13 +64,11 @@ const Calendar = () => {
   };
 
   const handleEventDrop = ({ event, start, end }) => {
-    const updatedEvent = { ...event, start, end };
-    dispatch(updateEvent(updatedEvent));
+    dispatch(updateEvent({ ...event, start, end }));
   };
 
   const handleEventResize = ({ event, start, end }) => {
-    const updatedEvent = { ...event, start, end };
-    dispatch(updateEvent(updatedEvent));
+    dispatch(updateEvent({ ...event, start, end }));
   };
 
   const handleDeleteEvent = (eventId) => {
@@ -87,55 +76,31 @@ const Calendar = () => {
     handleCloseModal();
   };
 
-  const handleDragOver = (event) => {
-    event.preventDefault();
-  };
+  const handleDragOver = (e) => e.preventDefault();
 
-  const handleDrop = (event) => {
-    event.preventDefault();
-    
+  const handleDrop = (e) => {
+    e.preventDefault();
     try {
-      const task = JSON.parse(event.dataTransfer.getData('task'));
-      const goalColor = event.dataTransfer.getData('goalColor');
+      const task = JSON.parse(e.dataTransfer.getData('task'));
+      const color = e.dataTransfer.getData('goalColor');
       
       if (task) {
         setDraggedTask(task);
-        setGoalColor(goalColor);
+        setGoalColor(color);
         
-        // Create a slot based on where the task was dropped
-        const calendarRect = event.currentTarget.getBoundingClientRect();
-        const calendarHours = 12; // Assuming 12 hours displayed
-        const hourHeight = calendarRect.height / calendarHours;
-        
-        const relativeY = event.clientY - calendarRect.top;
-        const hour = Math.floor(relativeY / hourHeight) + 8; // Assuming calendar starts at 8 AM
-        
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0);
-        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour + 1, 0);
+        const rect = e.currentTarget.getBoundingClientRect();
+        const hourHeight = rect.height / 12;
+        const hour = Math.floor((e.clientY - rect.top) / hourHeight) + 8;
         
         setSelectedSlot({
-          start,
-          end
+          start: new Date(new Date().setHours(hour, 0, 0)),
+          end: new Date(new Date().setHours(hour + 1, 0, 0))
         });
-        
         setModalOpen(true);
       }
-    } catch (error) {
-      console.error('Error processing dragged task:', error);
+    } catch (err) {
+      console.error('Drag error:', err);
     }
-  };
-
-  const eventStyleGetter = (event) => {
-    const style = {
-      backgroundColor: getCategoryColor(event.category),
-      borderRadius: '4px',
-      opacity: 0.8,
-      color: 'white',
-      border: '0px',
-      display: 'block'
-    };
-    return { style };
   };
 
   const getCategoryColor = (category) => {
@@ -147,97 +112,51 @@ const Calendar = () => {
       family: 'var(--event-family)',
       social: 'var(--event-social)'
     };
-    return colors[category] || colors.work;
+    return colors[category] || 'var(--event-default)';
   };
 
-  // Navigation functions
-  const goToToday = () => {
-    setCurrentDate(new Date());
-    setShowingNav('today');
-  };
-
-  const goToNext = () => {
-    let newDate = new Date(currentDate);
-    if (currentView === 'month') {
-      newDate.setMonth(newDate.getMonth() + 1);
-    } else if (currentView === 'week') {
-      newDate.setDate(newDate.getDate() + 7);
-    } else {
-      newDate.setDate(newDate.getDate() + 1);
+  const eventStyleGetter = (event) => ({
+    style: {
+      backgroundColor: getCategoryColor(event.category),
+      borderRadius: '4px',
+      opacity: 0.8,
+      color: 'white',
+      border: '0px',
+      display: 'block'
     }
-    setCurrentDate(newDate);
-    setShowingNav('next');
-  };
+  });
 
-  const goToPrevious = () => {
-    let newDate = new Date(currentDate);
-    if (currentView === 'month') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else if (currentView === 'week') {
-      newDate.setDate(newDate.getDate() - 7);
-    } else {
-      newDate.setDate(newDate.getDate() - 1);
-    }
+  const navigateDate = (direction) => {
+    const newDate = new Date(currentDate);
+    const unit = currentView === 'month' ? 'Month' : 
+                currentView === 'week' ? 'Date' : 'Date';
+    const amount = direction === 'next' ? 
+                  (currentView === 'week' ? 7 : 1) : 
+                  (currentView === 'week' ? -7 : -1);
+    
+    newDate[`set${unit}`](newDate[`get${unit}`]() + amount);
     setCurrentDate(newDate);
-    setShowingNav('back');
   };
-
 
   return (
-    <div 
-      className="calendar-container"
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-    >
+    <div className="calendar-container" onDragOver={handleDragOver} onDrop={handleDrop}>
       <div className="calendar-header">
-      <div className="calendar-navigation">
-          <button className="nav-arrow" onClick={goToPrevious}>
-            ←
-          </button>
-          
-          {showingNav === 'today' && (
-            <button className="nav-button" onClick={goToToday}>
-              Today
-            </button>
-          )}
-          
-          {showingNav === 'next' && (
-            <button className="nav-button" onClick={goToNext}>
-              Today
-            </button>
-          )}
-          
-          {showingNav === 'back' && (
-            <button className="nav-button" onClick={goToPrevious}>
-              Back
-            </button>
-          )}
-          
-          <button className="nav-arrow" onClick={goToNext}>
-            →
-          </button>
+        <div className="calendar-navigation">
+          <button onClick={() => navigateDate('prev')}>←</button>
+          <button onClick={() => setCurrentDate(new Date())}>Today</button>
+          <button onClick={() => navigateDate('next')}>→</button>
         </div>
         <div className="calendar-views">
-          <button 
-            className={currentView === 'month' ? 'active' : ''}
-            onClick={() => setCurrentView('month')}
-          >
-            Month
-          </button>
-          <button 
-            className={currentView === 'week' ? 'active' : ''}
-            onClick={() => setCurrentView('week')}
-          >
-            Week
-          </button>
-          <button 
-            className={currentView === 'day' ? 'active' : ''}
-            onClick={() => setCurrentView('day')}
-          >
-            Day
-          </button>
+          {['month', 'week', 'day'].map(view => (
+            <button
+              key={view}
+              className={currentView === view ? 'active' : ''}
+              onClick={() => setCurrentView(view)}
+            >
+              {view.charAt(0).toUpperCase() + view.slice(1)}
+            </button>
+          ))}
         </div>
-        
       </div>
 
       <div className="calendar-wrapper">
@@ -254,20 +173,15 @@ const Calendar = () => {
           onEventDrop={handleEventDrop}
           onEventResize={handleEventResize}
           eventPropGetter={eventStyleGetter}
-          step={15}
-          timeslots={4}
           defaultView={currentView}
           view={currentView}
           onView={setCurrentView}
           date={currentDate}
-          onNavigate={date => setCurrentDate(date)}
-          views={['month', 'week', 'day']}
-          components={{
-            event: EventComponent
-          }}
+          onNavigate={setCurrentDate}
+          components={{ event: EventComponent }}
         />
       </div>
-      
+
       {modalOpen && (
         <EventModal
           isOpen={modalOpen}
@@ -283,14 +197,11 @@ const Calendar = () => {
   );
 };
 
-// Custom Event Component with house emoji
-const EventComponent = ({ event }) => {
-  return (
-    <div className="calendar-event">
-      <span className="event-icon">🏠</span>
-      <span className="event-title">{event.title}</span>
-    </div>
-  );
-};
+const EventComponent = ({ event }) => (
+  <div className="calendar-event">
+    <span className="event-icon">🏠</span>
+    <span className="event-title">{event.title}</span>
+  </div>
+);
 
 export default Calendar;

@@ -4,9 +4,8 @@
       {
         "src": "client/package.json",
         "use": "@vercel/static-build",
-        "config": { 
-          "distDir": "build",
-          "framework": "create-react-app"
+        "config": {
+          "distDir": "build"
         }
       }
     ],
@@ -14,6 +13,10 @@
       {
         "src": "/api/(.*)",
         "dest": "server/index.js"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "client/build/$1"
       }
     ]
   }

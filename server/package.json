@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "lint": "eslint \"src/**/*.{js,jsx}\"",
      "build": "CI=false react-scripts build",
     "server": "nodemon server.js",
     "client": "cd client && npm start",
