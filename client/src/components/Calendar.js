@@ -213,7 +213,7 @@ const Calendar = () => {
           
           {showingNav === 'next' && (
             <button className="nav-button" onClick={goToNext}>
-              Next
+              Today
             </button>
           )}
           
