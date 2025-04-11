@@ -182,16 +182,6 @@ const Calendar = () => {
     setShowingNav('back');
   };
 
-  // Toggle navigation view
-  const toggleNavigation = () => {
-    if (showingNav === 'today') {
-      setShowingNav('next');
-    } else if (showingNav === 'next') {
-      setShowingNav('back');
-    } else {
-      setShowingNav('today');
-    }
-  };
 
   return (
     <div 
